@@ -34,6 +34,7 @@ import java.util.Set;
 /*
  * Listener class to iterate through AuthFeedReaders and retrieve items to delete from the cache
  */
+@Deprecated
 public class FeedCacheInvalidator implements Runnable {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(FeedCacheInvalidator.class);
