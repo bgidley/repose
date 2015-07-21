@@ -24,6 +24,7 @@ import java.util
 import javax.servlet.DispatcherType
 
 import com.typesafe.config.ConfigFactory
+import org.eclipse.jetty.server.session.HashSessionManager
 import org.eclipse.jetty.server.{Connector, Server, ServerConnector}
 import org.eclipse.jetty.servlet.{FilterHolder, ServletContextHandler}
 import org.eclipse.jetty.util.ssl.SslContextFactory
@@ -149,7 +150,7 @@ class ReposeJettyServer(val clusterId: String,
     //Have to coerce the stuff here, because it makes it happier
     s.setConnectors(connectors.asInstanceOf[Array[Connector]])
 
-    val contextHandler = new ServletContextHandler()
+    val contextHandler = new ServletContextHandler(ServletContextHandler.SESSIONS)
     contextHandler.setContextPath("/")
     contextHandler.addServlet(classOf[EmptyServlet], "/*")
 
