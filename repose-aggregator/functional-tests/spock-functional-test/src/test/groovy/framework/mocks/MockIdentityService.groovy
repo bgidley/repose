@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -41,6 +41,7 @@ class MockIdentityService {
     public MockIdentityService(int identityPort, int originServicePort) {
 
         resetHandlers()
+        resetDefaultParameters()
 
         this.port = identityPort
         this.originServicePort = originServicePort
@@ -133,6 +134,8 @@ class MockIdentityService {
     def client_username = 'username';
     def client_userid = 12345; //TODO: this should not be an int, userIDs are UUIDs
     def client_apikey = 'this-is-the-api-key';
+    def forbidden_apikey = 'this-api-key-results-in-forbidden'
+    def not_found_apikey = 'this-api-key-results-in-not-found'
     def admin_token = 'this-is-the-admin-token';
     def admin_tenant = 'this-is-the-admin-tenant'
     def admin_username = 'admin_username';
@@ -140,11 +143,41 @@ class MockIdentityService {
     def endpointUrl = "localhost"
     def region = "ORD"
     def admin_userid = 67890;
-    def sleeptime =0;
+    def sleeptime = 0;
     def contact_id = "${random.nextInt()}"
+    def impersonate_id = ""
+    def impersonate_name = ""
     def contactIdJson = ""
     def contactIdXml = ""
+    def additionalRolesXml = ""
+    def additionalRolesJson = ""
     Validator validator;
+
+    void resetDefaultParameters() {
+        client_token = 'this-is-the-token';
+        client_tenant = 'this-is-the-tenant';
+        client_tenant_file = 'this-is-the-nast-id'
+        client_username = 'username';
+        client_userid = 12345; //TODO: this should not be an int, userIDs are UUIDs
+        client_apikey = 'this-is-the-api-key';
+        forbidden_apikey = 'this-api-key-results-in-forbidden'
+        not_found_apikey = 'this-api-key-results-in-not-found'
+        admin_token = 'this-is-the-admin-token';
+        admin_tenant = 'this-is-the-admin-tenant'
+        admin_username = 'admin_username';
+        service_admin_role = 'service:admin-role1';
+        endpointUrl = "localhost"
+        region = "ORD"
+        admin_userid = 67890;
+        sleeptime = 0;
+        contact_id = "${random.nextInt()}"
+        contactIdJson = ""
+        contactIdXml = ""
+        additionalRolesXml = ""
+        additionalRolesJson = ""
+        impersonate_id = ""
+        impersonate_name = ""
+    }
 
     def templateEngine = new SimpleTemplateEngine();
 
@@ -327,15 +360,17 @@ class MockIdentityService {
         def request_token = tokenId
 
         def params = [
-                expires      : getExpires(),
-                userid       : client_userid,
-                username     : client_username,
-                tenant       : client_tenant,
-                tenanttwo    : client_tenant_file,
-                token        : request_token,
-                serviceadmin : service_admin_role,
-                contactIdXml : contactIdXml,
-                contactIdJson: contactIdJson
+                expires        : getExpires(),
+                userid         : client_userid,
+                username       : client_username,
+                tenant         : client_tenant,
+                tenanttwo      : client_tenant_file,
+                token          : request_token,
+                serviceadmin   : service_admin_role,
+                contactIdXml   : contactIdXml,
+                contactIdJson  : contactIdJson,
+                impersonateid  : impersonate_id,
+                impersonatename: impersonate_name
         ];
         if (contact_id != null && !contact_id.isEmpty()) {
             params.contactIdXml = "rax-auth:contactId=\"${contact_id}\""
@@ -359,11 +394,21 @@ class MockIdentityService {
                     template = rackerTokenXmlTemplate
                 } else if (tokenId == "failureRacker") {
                     template = rackerTokenWithoutProperRoleXmlTemplate
+                } else if (tokenId == "dedicatedUser") {
+                    template = dedicatedUserSuccessfulRespXmlTemplate
+                } else if (impersonate_id != "") {
+                    template = impersonateSuccessfulXmlRespTemplate
                 } else {
                     template = identitySuccessXmlTemplate
                 }
             } else {
-                template = identitySuccessJsonTemplate
+                if (impersonate_id != "") {
+                    template = impersonateSuccessfulJsonRespTemplate
+                } else if (tokenId == "dedicatedUser") {
+                    template = dedicatedUserSuccessfulRespJsonTemplate
+                } else {
+                    template = identitySuccessJsonTemplate
+                }
             }
         } else {
             code = 404
@@ -515,8 +560,25 @@ class MockIdentityService {
                 template = identitySuccessJsonTemplate
             }
         } else {
-            code = 401
+            //If the username or the apikey are longer than 120 characters, barf back a 400, bad request response
+            //I have to parse the XML body of the request to mimic behavior in identity
+            def auth = new XmlSlurper().parseText(request.body.toString())
+            String username = auth.apiKeyCredentials['@username']
+            String apikey = auth.apiKeyCredentials['@apiKey']
+
+            //Magic numbers are how large of a value identity will parse before giving back a 400 Bad Request
+            if (apikey.length() > 100 || username.length() > 100) {
+                code = 400
+            } else if (request.body.toString().contains(forbidden_apikey)) {
+                code = 403
+            } else if (request.body.toString().contains(not_found_apikey)) {
+                code = 404
+            } else {
+                code = 401
+            }
+
             if (xml) {
+                //TODO: This failure template is *ONLY* valid for token not found, NOT USEFUL
                 template = identityFailureXmlTemplate
             } else {
                 template = identityFailureJsonTemplate
@@ -568,15 +630,19 @@ class MockIdentityService {
         def template;
         def headers = [:];
 
+
         if (xml) {
             headers.put('Content-type', 'application/xml')
-            template = this.getUserGlobalRolesXmlTemplate
+            template = UserGlobalRolesXmlTemplate
         } else {
             headers.put('Content-type', 'application/json')
-            template = this.getUserGlobalRolesJsonTemplate;
+            template = UserGlobalRolesJsonTemplate;
         }
 
-        def params = [:];
+        def params = [
+                addRolesXml : additionalRolesXml,
+                addRolesJson: additionalRolesJson
+        ];
 
         def body = templateEngine.createTemplate(template).make(params);
         return new Response(200, null, headers, body);
@@ -809,6 +875,157 @@ class MockIdentityService {
 </access>
 """
 
+    def impersonateSuccessfulJsonRespTemplate =
+            """{
+    "access":{
+        "token":{
+            "id":"\${token}",
+            "expires":"\${expires}",
+            "tenant":{
+                "id": "\${tenant}",
+                "name": "\${tenant}"
+            }
+        },
+        "user":{
+            "RAX-AUTH:defaultRegion": "DFW",
+            \${contactIdJson}
+            "id":"\${userid}",
+            "name":"\${username}",
+            "roles":[{
+                    "id":"123",
+                    "name":"compute:admin"
+                },
+                {
+                    "tenantId" : "23456",
+                    "id":"234",
+                    "name":"object-store:admin"
+                },
+                {
+                    "id":"345",
+                    "name":"\${serviceadmin}"
+                }
+            ]
+        },
+        "RAX-AUTH:impersonator":{
+            "id":"\${impersonateid}",
+            "name":"\${impersonatename}",
+            "roles":[{
+                       "id":"123",
+                       "name":"Racker"
+                     },
+                     {
+                        "id":"234",
+                        "name":"object-store:admin"
+                     }
+           ]
+       }
+    }
+}
+"""
+    def impersonateSuccessfulXmlRespTemplate =
+            """<?xml version="1.0" encoding="UTF-8"?>
+<access
+    xmlns:os-ksadm="http://docs.openstack.org/identity/api/ext/OS-KSADM/v1.0"
+    xmlns:rax-auth="http://docs.rackspace.com/identity/api/ext/RAX-AUTH/v1.0"
+    xmlns="http://docs.openstack.org/identity/api/v2.0">
+    <token id="\${token}"
+        expires="\${expires}">
+        <tenant id="\${tenant}" name="\${tenant}" />
+    </token>
+    <user
+        xmlns:rax-auth="http://docs.rackspace.com/identity/api/ext/RAX-AUTH/v1.0"
+        id="\${userid}" username="\${username}" rax-auth:defaultRegion="DFW">
+        <roles xmlns="http://docs.openstack.org/identity/api/v2.0">
+            <role id="123" name="compute:admin" />
+            <role id="234" name="object-store:admin" />
+        </roles>
+    </user>
+    <rax-auth:impersonator id="\${impersonateid}" name="\${impersonatename}">
+        <roles xmlns="http://docs.openstack.org/identity/api/v2.0">
+            <role id="123" name="Racker" />
+            <role id="234" name="object-store:admin" />
+        </roles>
+    </rax-auth:impersonator>
+</access>
+"""
+    def dedicatedUserSuccessfulRespXmlTemplate =
+            """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<access xmlns:atom="http://www.w3.org/2005/Atom"
+        xmlns:rax-auth="http://docs.rackspace.com/identity/api/ext/RAX-AUTH/v1.0"
+        xmlns="http://docs.openstack.org/identity/api/v2.0"
+        xmlns:ns4="http://docs.rackspace.com/identity/api/ext/RAX-KSGRP/v1.0"
+        xmlns:rax-ksqa="http://docs.rackspace.com/identity/api/ext/RAX-KSQA/v1.0"
+        xmlns:os-ksadm="http://docs.openstack.org/identity/api/ext/OS-KSADM/v1.0"
+        xmlns:rax-kskey="http://docs.rackspace.com/identity/api/ext/RAX-KSKEY/v1.0"
+        xmlns:os-ksec2="http://docs.openstack.org/identity/api/ext/OS-KSEC2/v1.0">
+    <token id="\${token}" expires="\${expires}">
+        <rax-auth:authenticatedBy>
+            <rax-auth:credential>PASSWORD</rax-auth:credential>
+        </rax-auth:authenticatedBy>
+    </token>
+    <user id="dedicatedUser" name="dedicated_29502_1099363" rax-auth:defaultRegion="ORD" \${contactIdXml}>
+        <roles>
+            <role id="10015582"
+                  name="monitoring:admin"
+                  description="Monitoring Admin Role for Account User"
+                  serviceId="bde1268ebabeeabb70a0e702a4626977c331d5c4"
+                  tenantId="\${tenant}" rax-auth:propagate="false"/>
+            <role id="16"
+                  name="dedicated:default"
+                  description="a role that allows a user access to dedicated service methods"
+                  serviceId="bde1268ebabeeabb70a0e702a4626977c331d5c4"
+                  tenantId="\${tenant}"
+                  rax-auth:propagate="true"/>
+            <role id="2"
+                  name="identity:default"
+                  description="Default Role."
+                  serviceId="bde1268ebabeeabb70a0e702a4626977c331d5c4"
+                  rax-auth:propagate="false"/>
+        </roles>
+    </user>
+</access>
+"""
+    def dedicatedUserSuccessfulRespJsonTemplate =
+            """{
+  "access": {
+    "token": {
+        "id": "\${token}",
+        "expires": "\${expires}",
+        "RAX-AUTH:authenticatedBy": [
+            "PASSWORD"
+        ]
+    },
+    "user": {
+      "id": "dedicatedUser",
+      "roles": [
+        {
+          "tenantId" : "\${tenant}",
+          "id": "10015582",
+          "serviceId": "bde1268ebabeeabb70a0e702a4626977c331d5c4",
+          "description": "Monitoring Admin Role for Account User",
+          "name": "monitoring:admin"
+        },
+        {
+          "tenantId" : "\${tenant}",
+          "id": "16",
+          "serviceId": "bde1268ebabeeabb70a0e702a4626977c331d5c4",
+          "description": "a role that allows a user access to dedicated service methods",
+          "name": "dedicated:default"
+        },
+        {
+          "id": "2",
+          "serviceId": "bde1268ebabeeabb70a0e702a4626977c331d5c4",
+          "description": "Default Role.",
+          "name": "identity:default"
+        }
+      ],
+      "name": "dedicated_29502_1099363",
+      "RAX-AUTH:defaultRegion": "ORD",
+      \${contactIdJson}
+    }
+  }
+}
+"""
     // TODO: Replace this with builder
     def identityEndpointsJsonTemplate =
             """{
@@ -959,5 +1176,60 @@ class MockIdentityService {
         </roles>
     </user>
 </access>
+"""
+    def UserGlobalRolesXmlTemplate =
+            """<?xml version="1.0" encoding="UTF-8"?>
+  <roles
+    xmlns:atom="http://www.w3.org/2005/Atom"
+    xmlns:rax-auth="http://docs.rackspace.com/identity/api/ext/RAX-AUTH/v1.0"
+    xmlns="http://docs.openstack.org/identity/api/v2.0"
+    xmlns:ns4="http://docs.rackspace.com/identity/api/ext/RAX-KSGRP/v1.0"
+    xmlns:rax-ksqa="http://docs.rackspace.com/identity/api/ext/RAX-KSQA/v1.0"
+    xmlns:os-ksadm="http://docs.openstack.org/identity/api/ext/OS-KSADM/v1.0"
+    xmlns:rax-kskey="http://docs.rackspace.com/identity/api/ext/RAX-KSKEY/v1.0"
+    xmlns:os-ksec2="http://docs.openstack.org/identity/api/ext/OS-KSEC2/v1.0">
+    <role id="9" name="Racker"
+        description="Defines a user as being a Racker"
+        serviceId="18e7a7032733486cd32f472d7bd58f709ac0d221" rax-auth:propagate="true"/>
+    <role id="5" name="object-store:default"
+        description="Role to access keystone service"
+        serviceId="18e7a7032733486cd32f472d7bd58f709ac0d221"/>
+    <role id="6" name="compute:default"
+        description="Role to access keystone service"
+        serviceId="18e7a7032733486cd32f472d7bd58f709ac0d221""/>
+    <role id="3" name="identity:user-admin"
+        description="User Admin Role"
+        serviceId="18e7a7032733486cd32f472d7bd58f709ac0d221"/>
+    \${addRolesXml}
+</roles>
+"""
+    def UserGlobalRolesJsonTemplate =
+            """{
+    "roles": [
+        {
+            "description": "Defines a user as being Racker",
+            "id": "9",
+            "name": "Racker",
+            "serviceId": "18e7a7032733486cd32f472d7bd58f709ac0d221"
+        },
+        {
+            "description": "Role to access keystone service",
+            "id": "5",
+            "name": "object-store:default",
+            "serviceId": "18e7a7032733486cd32f472d7bd58f709ac0d221"
+        },
+        {
+            "description": "Role to access keystone service",
+            "id": "6",
+            "name": "compute:default",
+            "serviceId": "18e7a7032733486cd32f472d7bd58f709ac0d221"
+        },
+        {
+            "description": "Admin role for database service",
+            "id": "3",
+            "name": "User Admin Role",
+            "serviceId": "18e7a7032733486cd32f472d7bd58f709ac0d221"
+        },
+        \${addRolesJson}
 """
 }

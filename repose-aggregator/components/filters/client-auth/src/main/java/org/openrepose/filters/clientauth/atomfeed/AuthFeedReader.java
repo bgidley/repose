@@ -19,7 +19,9 @@
  */
 package org.openrepose.filters.clientauth.atomfeed;
 
+@Deprecated
 public interface AuthFeedReader {
 
-    CacheKeys getCacheKeys() throws FeedException;
+    CacheKeys getCacheKeys(String traceID) throws FeedException;
+    void setOutboundTracing(boolean isOutboundTracing);
 }

@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.openrepose</groupId>
         <artifactId>filters-support</artifactId>
-        <version>7.1.3.2-SNAPSHOT</version>
+        <version>7.2.0.1-SNAPSHOT</version>
     </parent>
 
     <name>Repose Components - EAR Bundle</name>
@@ -192,6 +192,16 @@
         <dependency>
             <groupId>org.openrepose</groupId>
             <artifactId>merge-header</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.openrepose</groupId>
+            <artifactId>keystone-v2</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.openrepose</groupId>
+            <artifactId>cors</artifactId>
             <version>${project.version}</version>
         </dependency>
 

@@ -20,14 +20,12 @@
 package org.openrepose.filters.apivalidator
 
 import com.rackspace.com.papi.components.checker.Config
-import com.rackspace.com.papi.components.checker.handler.ApiCoverageHandler
-import com.rackspace.com.papi.components.checker.handler.DelegationHandler
-import com.rackspace.com.papi.components.checker.handler.InstrumentedHandler
-import com.rackspace.com.papi.components.checker.handler.MethodLabelHandler
+import com.rackspace.com.papi.components.checker.handler.*
 import org.junit.Before
 import org.junit.Test
 import org.openrepose.components.apivalidator.servlet.config.ValidatorConfiguration
 import org.openrepose.components.apivalidator.servlet.config.ValidatorItem
+import scala.collection.JavaConversions
 
 class ValidatorConfiguratorTest {
 
@@ -74,9 +72,10 @@ class ValidatorConfiguratorTest {
         ValidatorItem vItem = new ValidatorItem()
         vItem.setEnableApiCoverage(true)
 
-        DispatchHandler handlers = vldtrConfigurator.getHandlers(vItem, false, 0.0, true, "")
-        assert handlers.handlers[0] instanceof InstrumentedHandler
-        assert handlers.handlers[1] instanceof ApiCoverageHandler
+        DispatchResultHandler handlers = vldtrConfigurator.getHandlers(vItem, false, 0.0, true, "", "")
+        def internalHandlers = JavaConversions.asJavaList(handlers.handlers)
+        assert internalHandlers.get(0) instanceof InstrumentedHandler
+        assert internalHandlers.get(1) instanceof ApiCoverageHandler
     }
 
     @Test
@@ -84,17 +83,36 @@ class ValidatorConfiguratorTest {
         ValidatorConfigurator vldtrConfigurator = new ValidatorConfigurator()
         ValidatorItem vItem = new ValidatorItem()
 
-        DispatchHandler handlers = vldtrConfigurator.getHandlers(vItem, true, 0.9, true, "")
-        assert handlers.handlers[0] instanceof MethodLabelHandler
-        assert handlers.handlers[1] instanceof DelegationHandler
+        DispatchResultHandler handlers = vldtrConfigurator.getHandlers(vItem, true, 0.9, true, "", "")
+        def internalHandlers = JavaConversions.asJavaList(handlers.handlers)
+        assert internalHandlers.get(0) instanceof MethodLabelHandler
+        assert internalHandlers.get(1) instanceof DelegationHandler
     }
 
     @Test
     void whenValidateCheckerIsFalseConfigShouldStoreFalse() {
         ValidatorItem vItem = new ValidatorItem();
         vItem.setValidateChecker(false);
-        Config config = validatorConfigurator.createConfiguration(vItem, false, 1.0, false, "");
+        Config config = validatorConfigurator.createConfiguration(vItem, false, 1.0, false, "", "")
         assert !config.getValidateChecker();
+    }
+
+    @Test
+    void whenCheckXsdGrammarIsTrueConfigJsonShouldBeFalse() {
+        ValidatorItem vItem = new ValidatorItem();
+        vItem.checkXsdGrammar = true;
+        Config config = validatorConfigurator.createConfiguration(vItem, false, 1.0, false, "", "")
+        assert config.getCheckXSDGrammar();
+        assert !config.getCheckJSONGrammar();
+    }
+
+    @Test
+    void whenCheckGrammarsIsTrueConfigBothShouldBeTrue() {
+        ValidatorItem vItem = new ValidatorItem();
+        vItem.checkGrammars = true;
+        Config config = validatorConfigurator.createConfiguration(vItem, false, 1.0, false, "", "")
+        assert config.getCheckXSDGrammar();
+        assert config.getCheckJSONGrammar();
     }
 
     static String getFilePath(URL path) {

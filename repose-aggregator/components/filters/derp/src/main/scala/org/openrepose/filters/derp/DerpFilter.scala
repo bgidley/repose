@@ -19,7 +19,6 @@
  */
 package org.openrepose.filters.derp
 
-import javax.inject.Named
 import javax.servlet._
 import javax.servlet.http.{HttpServletRequest, HttpServletResponse}
 import javax.ws.rs.core.MediaType
@@ -37,7 +36,6 @@ import scala.util.{Failure, Success}
  * This filter is header quality aware; the delegation header with the highest quality will be used to formulate a
  * response.
  */
-@Named
 class DerpFilter extends Filter with HttpDelegationManager with LazyLogging {
 
   override def init(filterConfig: FilterConfig): Unit = {
@@ -81,7 +79,7 @@ class DerpFilter extends Filter with HttpDelegationManager with LazyLogging {
     httpServletResponse.setContentLength(responseBody.length)
     httpServletResponse.setContentType(MediaType.TEXT_PLAIN)
     httpServletResponse.getWriter.write(responseBody)
-    httpServletResponse.sendError(statusCode)
+    httpServletResponse.sendError(statusCode, responseBody)
   }
 
   override def destroy(): Unit = {

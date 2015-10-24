@@ -27,6 +27,7 @@ import org.openrepose.common.auth.AuthToken;
 import org.openrepose.common.auth.openstack.AuthenticationService;
 import org.openrepose.common.auth.openstack.AuthenticationServiceClient;
 import org.openrepose.common.auth.openstack.OpenStackToken;
+import org.openrepose.commons.utils.StringUtilities;
 import org.openrepose.commons.utils.http.CommonHttpHeader;
 import org.openrepose.commons.utils.regex.ExtractorResult;
 import org.openrepose.commons.utils.servlet.http.ReadableHttpServletResponse;
@@ -41,10 +42,12 @@ import org.slf4j.LoggerFactory;
 
 import javax.servlet.http.HttpServletResponse;
 import java.util.List;
+import java.util.Set;
 
 /**
  * @author fran
  */
+@Deprecated
 public class OpenStackAuthenticationHandler extends AuthenticationHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(OpenStackAuthenticationHandler.class);
@@ -52,8 +55,7 @@ public class OpenStackAuthenticationHandler extends AuthenticationHandler {
     private static final String DELEGATED = "Delegated";
     private final String wwwAuthHeaderContents;
     private final AuthenticationService authenticationService;
-    private final List<String> serviceAdminRoles;
-    private final List<String> ignoreTenantRoles;
+    private final Set<String> ignoreTenantRoles;
     private boolean delegatingMode;
 
     public OpenStackAuthenticationHandler(
@@ -68,18 +70,17 @@ public class OpenStackAuthenticationHandler extends AuthenticationHandler {
         super(cfg, cache, grpCache, usrCache, endpointsCache, uriMatcher);
         this.authenticationService = serviceClient;
         this.wwwAuthHeaderContents = WWW_AUTH_PREFIX + cfg.getAuthServiceUri();
-        this.serviceAdminRoles = cfg.getServiceAdminRoles();
         this.ignoreTenantRoles = cfg.getIgnoreTenantRoles();
         this.delegatingMode = cfg.isDelegable();
     }
 
-    private boolean roleIsServiceAdmin(AuthToken authToken) {
-        if (authToken.getRoles() == null || serviceAdminRoles == null) {
+    private boolean hasIgnoreTenantRole(AuthToken authToken) {
+        if (authToken.getRoles() == null || ignoreTenantRoles == null) {
             return false;
         }
 
         for (String role : authToken.getRoles().split(",")) {
-            if (serviceAdminRoles.contains(role)) {
+            if (ignoreTenantRoles.contains(role)) {
                 return true;
             }
         }
@@ -93,13 +94,14 @@ public class OpenStackAuthenticationHandler extends AuthenticationHandler {
             authToken = new OpenStackToken(resp);
         }
 
-        if (authToken != null && !roleIsServiceAdmin(authToken) && !authToken.getTenantId().equalsIgnoreCase(tenantID)) {
+        if (authToken != null && !hasIgnoreTenantRole(authToken) && !StringUtilities.nullSafeEquals(authToken.getTenantId(), tenantID)) {
             // tenant ID from token did not match URI.
 
             if (resp.getUser() != null && resp.getUser().getRoles() != null) {
                 for (Role role : resp.getUser().getRoles().getRole()) {
-                    if (tenantID.equalsIgnoreCase(role.getTenantId())) {
+                    if (tenantID.equals(role.getTenantId())) {
                         //we have the real tenantID
+                        authToken.setMatchingTenantId(tenantID);
                         return authToken;
                     }
                 }
@@ -114,15 +116,15 @@ public class OpenStackAuthenticationHandler extends AuthenticationHandler {
     }
 
     @Override
-    public AuthToken validateToken(ExtractorResult<String> account, String token, String requestGuid) throws AuthServiceException {
+    public AuthToken validateToken(ExtractorResult<String> account, String token, String tracingHeader) throws AuthServiceException {
         AuthToken authToken = null;
 
         if (account != null) {
-            AuthenticateResponse authResponse = authenticationService.validateToken(account.getResult(), token, requestGuid);
+            AuthenticateResponse authResponse = authenticationService.validateToken(account.getResult(), token, tracingHeader);
             delegationMessage.set(AuthenticationServiceClient.getDelegationMessage()); // Must be set before validateTenant call in case that call overwrites this value
             authToken = validateTenant(authResponse, account.getResult());
         } else {
-            AuthenticateResponse authResp = authenticationService.validateToken(null, token, requestGuid);
+            AuthenticateResponse authResp = authenticationService.validateToken(null, token, tracingHeader);
             delegationMessage.set(AuthenticationServiceClient.getDelegationMessage());
             if (authResp != null) {
                 authToken = new OpenStackToken(authResp);
@@ -130,31 +132,12 @@ public class OpenStackAuthenticationHandler extends AuthenticationHandler {
         }
         AuthenticationServiceClient.removeDelegationMessage();
 
-        /**
-         * If any role in that token is in the BypassTenantRoles list, bypass the tenant check
-         */
-        if (authToken != null) { //authToken could still be null at this point :(
-            boolean ignoreTenantRequirement = false;
-            for (String role : authToken.getRoles().split(",")) {
-                if (ignoreTenantRoles.contains(role)) {
-                    ignoreTenantRequirement = true;
-                }
-            }
-
-            if (!ignoreTenantRequirement) {
-                if (authToken.getTenantId() == null || authToken.getTenantName() == null) {
-                    //Moved this check from within the OpenStackToken into here
-                    delegationMessage.set("Invalid Response from Auth for token: " + authToken.getTokenId() + ". Token object must have a tenant");
-                    throw new IllegalArgumentException("Invalid Response from Auth for token: " + authToken.getTokenId() + ". Token object must have a tenant");
-                }
-            }
-        }
         return authToken;
     }
 
     @Override
-    public AuthGroups getGroups(String group, String requestGuid) throws AuthServiceException {
-        return authenticationService.getGroups(group, requestGuid);
+    public AuthGroups getGroups(String group, String tracingHeader) throws AuthServiceException {
+        return authenticationService.getGroups(group, tracingHeader);
     }
 
     @Override
@@ -204,8 +187,8 @@ public class OpenStackAuthenticationHandler extends AuthenticationHandler {
     }
 
     @Override
-    protected String getEndpointsBase64(String token, EndpointsConfiguration endpointsConfiguration, String requestGuid) throws AuthServiceException {
-        return authenticationService.getBase64EndpointsStringForHeaders(token, endpointsConfiguration.getFormat(), requestGuid);
+    protected String getEndpointsBase64(String token, EndpointsConfiguration endpointsConfiguration, String tracingHeader) throws AuthServiceException {
+        return authenticationService.getBase64EndpointsStringForHeaders(token, endpointsConfiguration.getFormat(), tracingHeader);
     }
 
     @Override
@@ -220,10 +203,10 @@ public class OpenStackAuthenticationHandler extends AuthenticationHandler {
             List<AuthGroup> groups,
             String endpointsInBase64,
             String contactId,
-            boolean tenanted, boolean sendAllTenantIds, boolean sendTenantIdQuality) {
+            boolean sendAllTenantIds, boolean sendTenantIdQuality) {
 
         new OpenStackAuthenticationHeaderManager(authToken, cachableToken, delegatable, delegableQuality, delegationMessage,
-                filterDirector, extractedResult, groups, wwwAuthHeaderContents, endpointsInBase64, contactId, tenanted, sendAllTenantIds,
+                filterDirector, extractedResult, groups, wwwAuthHeaderContents, endpointsInBase64, contactId, sendAllTenantIds,
                 sendTenantIdQuality)
                 .setFilterDirectorValues();
     }

@@ -30,6 +30,7 @@ import java.util.List;
 /*
  * Controls the feed listener
  */
+@Deprecated
 public class FeedListenerManager {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(FeedListenerManager.class);
@@ -62,5 +63,7 @@ public class FeedListenerManager {
         }
     }
 
-
+    public void setOutboundTracing(boolean isOutboundTracing) {
+        listener.setOutboundTracing(isOutboundTracing);
+    }
 }

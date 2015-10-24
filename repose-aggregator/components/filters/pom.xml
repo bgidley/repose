@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.openrepose</groupId>
         <artifactId>components-support</artifactId>
-        <version>7.1.3.2-SNAPSHOT</version>
+        <version>7.2.0.1-SNAPSHOT</version>
     </parent>
 
     <name>filters-support</name>
@@ -47,6 +47,8 @@
         <module>iri-validator</module>
         <module>herp</module>
         <module>valkyrie-authorization</module>
+        <module>keystone-v2</module>
+        <module>cors</module>
     </modules>
 
     <properties>

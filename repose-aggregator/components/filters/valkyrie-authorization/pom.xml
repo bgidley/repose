@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.openrepose</groupId>
         <artifactId>filters-support</artifactId>
-        <version>7.1.3.2-SNAPSHOT</version>
+        <version>7.2.0.1-SNAPSHOT</version>
     </parent>
 
     <name>Repose Components - Valkyrie Authorization</name>
@@ -53,6 +53,23 @@
             <groupId>com.typesafe.play</groupId>
             <artifactId>play-json_2.10</artifactId>
             <version>2.3.4</version>
+        </dependency>
+        <!-- this lets us use a complex json path-->
+        <dependency>
+            <groupId>com.josephpconley</groupId>
+            <artifactId>play-jsonpath_2.10</artifactId>
+            <version>1.1</version>
+        </dependency>
+        <!-- lets me build a piece meal json path for the transforms -->
+        <dependency>
+            <groupId>io.gatling</groupId>
+            <artifactId>jsonpath_2.10</artifactId>
+            <version>0.6.4</version>
+        </dependency>
+        <!-- i catch an exception from this, really the implementing library should have caught and wrapped -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
         </dependency>
 
         <!-- Http Delegation Library for delegating requests -->
@@ -105,13 +122,6 @@
         </dependency>
 
         <dependency>
-            <groupId>com.mockrunner</groupId>
-            <artifactId>mockrunner-servlet</artifactId>
-            <version>1.0.0</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
             <groupId>javax.ws.rs</groupId>
             <artifactId>javax.ws.rs-api</artifactId>
             <version>2.0.1</version>
@@ -121,12 +131,6 @@
 
     <build>
         <plugins>
-            <!-- The plugin that gets Scala running -->
-            <plugin>
-                <groupId>net.alchim31.maven</groupId>
-                <artifactId>scala-maven-plugin</artifactId>
-            </plugin>
-
             <!-- The plugin that cleans up our XSD to conform to XML 1.0 -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>

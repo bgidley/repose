@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.openrepose</groupId>
         <artifactId>filters-support</artifactId>
-        <version>7.1.3.2-SNAPSHOT</version>
+        <version>7.2.0.1-SNAPSHOT</version>
     </parent>
 
     <name>Repose Components - Versioning</name>
@@ -77,11 +77,6 @@
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
             <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>com.mockrunner</groupId>
-            <artifactId>mockrunner-servlet</artifactId>
         </dependency>
 
         <dependency>

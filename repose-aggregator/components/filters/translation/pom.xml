@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.openrepose</groupId>
         <artifactId>filters-support</artifactId>
-        <version>7.1.3.2-SNAPSHOT</version>
+        <version>7.2.0.1-SNAPSHOT</version>
     </parent>
 
     <name>Repose Components - Translation</name>
@@ -124,11 +124,6 @@
 
     <build>
         <plugins>
-            <!-- The plugin that gets Scala running -->
-            <plugin>
-                <groupId>net.alchim31.maven</groupId>
-                <artifactId>scala-maven-plugin</artifactId>
-            </plugin>
             <plugin>
                 <groupId>org.jvnet.jaxb2.maven2</groupId>
                 <artifactId>maven-jaxb2-plugin</artifactId>

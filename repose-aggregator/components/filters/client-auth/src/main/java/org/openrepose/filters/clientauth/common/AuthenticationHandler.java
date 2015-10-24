@@ -44,6 +44,7 @@ import java.util.concurrent.TimeoutException;
 /**
  * @author fran
  */
+@Deprecated
 public abstract class AuthenticationHandler extends AbstractFilterLogicHandler {
 
     private static final Logger LOG = org.slf4j.LoggerFactory.getLogger(AuthenticationHandler.class);
@@ -95,11 +96,11 @@ public abstract class AuthenticationHandler extends AbstractFilterLogicHandler {
         this.sendTenantIdQuality = configurables.sendTenantIdQuality();
     }
 
-    protected abstract AuthToken validateToken(ExtractorResult<String> account, String token, String requestGuid) throws AuthServiceException;
+    protected abstract AuthToken validateToken(ExtractorResult<String> account, String token, String tracingHeader) throws AuthServiceException;
 
-    protected abstract AuthGroups getGroups(String group, String requestGuid) throws AuthServiceException;
+    protected abstract AuthGroups getGroups(String group, String tracingHeader) throws AuthServiceException;
 
-    protected abstract String getEndpointsBase64(String token, EndpointsConfiguration endpointsConfiguration, String requestGuid) throws AuthServiceException;
+    protected abstract String getEndpointsBase64(String token, EndpointsConfiguration endpointsConfiguration, String tracingHeader) throws AuthServiceException;
 
     protected abstract FilterDirector processResponse(ReadableHttpServletResponse response);
 
@@ -107,7 +108,7 @@ public abstract class AuthenticationHandler extends AbstractFilterLogicHandler {
                                                     double delegableQuality, String delegationMessage,
                                                     FilterDirector filterDirector, String extractedResult,
                                                     List<AuthGroup> groups, String endpointsBase64, String contactId,
-                                                    boolean tenanted, boolean sendAllTenantIds, boolean sendTenantIdQuality);
+                                                    boolean sendAllTenantIds, boolean sendTenantIdQuality);
 
     @Override
     public FilterDirector handleRequest(HttpServletRequest request, ReadableHttpServletResponse response) {
@@ -138,7 +139,7 @@ public abstract class AuthenticationHandler extends AbstractFilterLogicHandler {
         filterDirector.setFilterAction(FilterAction.RETURN);
         int offset = getCacheOffset();
 
-        final String requestGuid = request.getHeader(CommonHttpHeader.TRACE_GUID.toString());
+        final String tracingHeader = request.getHeader(CommonHttpHeader.TRACE_GUID.toString());
         final String authToken = request.getHeader(CommonHttpHeader.AUTH_TOKEN.toString());
         ExtractorResult<String> account = null;
         AuthToken token = null;
@@ -157,18 +158,18 @@ public abstract class AuthenticationHandler extends AbstractFilterLogicHandler {
                 token = checkToken(account, authToken);
 
                 if (token == null) {
-                    token = validateToken(account, StringUriUtilities.encodeUri(authToken), requestGuid);
+                    token = validateToken(account, StringUriUtilities.encodeUri(authToken), tracingHeader);
                     cacheUserInfo(token, offset);
                 }
             }
 
             if (token != null) {
-                groups = getAuthGroups(token, offset, requestGuid);
+                groups = getAuthGroups(token, offset, tracingHeader);
                 contactId = token.getContactId();
 
                 //getting the encoded endpoints to pass into the header, if the endpoints config is not null
                 if (endpointsConfiguration != null) {
-                    endpointsInBase64 = getEndpointsInBase64(token, requestGuid);
+                    endpointsInBase64 = getEndpointsInBase64(token, tracingHeader);
                 }
             }
         } catch (AuthServiceOverLimitException ex) {
@@ -199,7 +200,7 @@ public abstract class AuthenticationHandler extends AbstractFilterLogicHandler {
         }
 
         setFilterDirectorValues(authToken, token, delegable, delegableQuality, delegationMessage.get(), filterDirector,
-                account == null ? "" : account.getResult(), groups, endpointsInBase64, contactId, tenanted, sendAllTenantIds,
+                account == null ? null : account.getResult(), groups, endpointsInBase64, contactId, sendAllTenantIds,
                 sendTenantIdQuality);
 
         delegationMessage.remove();
@@ -208,7 +209,7 @@ public abstract class AuthenticationHandler extends AbstractFilterLogicHandler {
     }
 
     //check for null, check for it already in cache
-    private String getEndpointsInBase64(AuthToken token, String requestGuid) throws AuthServiceException {
+    private String getEndpointsInBase64(AuthToken token, String tracingHeader) throws AuthServiceException {
         String tokenId = null;
 
         if (token != null) {
@@ -219,7 +220,7 @@ public abstract class AuthenticationHandler extends AbstractFilterLogicHandler {
 
         //if endpoints are not already in the cache then make a call for them and cache what comes back
         if (endpoints == null) {
-            endpoints = getEndpointsBase64(tokenId, endpointsConfiguration, requestGuid);
+            endpoints = getEndpointsBase64(tokenId, endpointsConfiguration, tracingHeader);
             cacheEndpoints(tokenId, endpoints);
         }
 
@@ -235,14 +236,14 @@ public abstract class AuthenticationHandler extends AbstractFilterLogicHandler {
         return endpointsCache.getEndpoints(token);
     }
 
-    private List<AuthGroup> getAuthGroups(AuthToken token, int offset, String requestGuid) throws AuthServiceException {
+    private List<AuthGroup> getAuthGroups(AuthToken token, int offset, String tracingHeader) throws AuthServiceException {
         if (token != null && requestGroups) {
 
             AuthGroups authGroups = checkGroupCache(token);
 
             if (authGroups == null) {
 
-                authGroups = getGroups(token.getUserId(), requestGuid);
+                authGroups = getGroups(token.getUserId(), tracingHeader);
                 cacheGroupInfo(token, authGroups, offset);
             }
 

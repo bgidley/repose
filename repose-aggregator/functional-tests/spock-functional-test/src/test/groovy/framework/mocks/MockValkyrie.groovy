@@ -34,6 +34,7 @@ class MockValkyrie {
     public MockValkyrie(int port) {
 
         resetHandlers()
+        resetParameters()
         this.port = port
     }
 
@@ -57,10 +58,24 @@ class MockValkyrie {
         authorizeHandler = this.&authorize
     }
 
+    void resetParameters() {
+        device_id = "234567"
+        device_id2 = "123456"
+        device_perm = "butts"
+        account_perm = "also_butts"
+        contact_id = ""
+        tenant_id = ""
+        sleeptime = 0
+    }
+
     Closure<Response> authorizeHandler
 
-    String device_id = ""
-    String device_perm = ""
+    String device_id = "234567"
+    String device_id2 = "123456"
+    String device_perm = "butts"
+    String account_perm = "also_butts"
+    String contact_id = ""
+    String tenant_id = ""
 
     def sleeptime = 0;
 
@@ -73,7 +88,8 @@ class MockValkyrie {
         /*
          *
          * GET
-         * account/ {TenantId}/permissions/contacts/devices/by_contact/{ContactId}/effective
+         * account device permission: account/ {TenantId}/permissions/contacts/devices/by_contact/{ContactId}/effective or
+         * account level permission: account/ {TenantId}/permissions/contacts/account/by_contact/{ContactId}/effective
          * TenantId : Required
          * ContactId : Required
          * REQUIRED HEADERS: X-Auth-User: username, X-Auth-Token: password (not a GA token)
@@ -83,7 +99,6 @@ class MockValkyrie {
 
         String requestPath = request.getPath()
         String method = request.getMethod()
-
 
         def username
         def password
@@ -99,10 +114,12 @@ class MockValkyrie {
 
         if (method == "GET") {
             if (!missingRequestHeaders) {
-
                 def match = (requestPath =~ permissionsRegex)
                 def tenant = match[0][1]
-                def contact = match[0][2]
+                def call = match[0][2]
+                def contact = match[0][3]
+                contact_id = contact
+                tenant_id = tenant
                 _authorizeCount.incrementAndGet()
                 return authorizeHandler(tenant, contact, request)
             } else {
@@ -116,15 +133,17 @@ class MockValkyrie {
     }
 
     static
-    final String permissionsRegex = /^\/account\/([^\/]+)\/permissions\/contacts\/devices\/by_contact\/([^\/]+)\/effective/
+    final String permissionsRegex = /^\/account\/([^\/]+)\/permissions\/contacts\/any\/by_contact\/([^\/]+)\/effective/
 
     Response authorize(String tenant, String contact, Request request) {
 
         def params = [
-                contact   : contact,
-                tenant    : tenant,
-                deviceID  : device_id,
-                permission: device_perm
+                contact     : contact,
+                tenant      : tenant,
+                deviceID    : device_id,
+                deviceID2   : device_id2,
+                permission  : device_perm,
+                account_perm: account_perm,
         ];
 
         def code;
@@ -162,47 +181,115 @@ class MockValkyrie {
             """{
                     "contact_permissions": [
                         {
-                            "account_number": \${tenant},
-                            "contact_id": \${contact},
-                            "id": 0,
-                            "item_id": \${deviceID},
-                            "item_type_id": 1,
+                            "item_type_id": 2,
+                            "permission_type_id": 15,
                             "item_type_name": "devices",
+                            "contact_id": \${contact},
+                            "account_number": \${tenant},
                             "permission_name": "\${permission}",
-                            "permission_type_id": 12
+                            "item_id": \${deviceID},
+                            "id": 0
                         },
                         {
-                            "account_number": \${tenant},
-                            "contact_id": \${contact},
-                            "id": 0,
-                            "item_id": 504358,
-                            "item_type_id": 1,
+                            "item_type_id": 2,
+                            "permission_type_id": 12,
                             "item_type_name": "devices",
-                            "permission_name": "view_product",
-                            "permission_type_id": 12
+                            "contact_id": \${contact},
+                            "account_number": \${tenant},
+                            "permission_name": "\${permission}",
+                            "item_id": \${deviceID2},
+                            "id": 0
                         },
                         {
-                            "account_number": \${tenant},
-                            "contact_id": \${contact},
-                            "id": 0,
-                            "item_id": 504360,
-                            "item_type_id": 1,
+                            "item_type_id": 2,
+                            "permission_type_id": 9,
                             "item_type_name": "devices",
+                            "contact_id": \${contact},
+                            "account_number": \${tenant},
                             "permission_name": "admin_product",
-                            "permission_type_id": 14
+                            "item_id": 862323,
+                            "id": 0
                         },
                         {
-                            "account_number": \${tenant},
-                            "contact_id": \${contact},
-                            "id": 0,
-                            "item_id": 504362,
-                            "item_type_id": 1,
+                            "item_type_id": 2,
+                            "permission_type_id": 2,
                             "item_type_name": "devices",
-                            "permission_name": "edit_product",
-                            "permission_type_id": 13
+                            "contact_id": \${contact},
+                            "account_number": \${tenant},
+                            "permission_name": "edid_product",
+                            "item_id": 862323,
+                            "id": 0
+                        },
+                        {
+                            "item_type_id": 2,
+                            "permission_type_id": 9,
+                            "item_type_name": "accounts",
+                            "contact_id": \${contact},
+                            "account_number": \${tenant},
+                            "permission_name": "upgrade_account",
+                            "item_id": 862323,
+                            "id": 0
+                        },
+                        {
+                            "item_type_id": 2,
+                            "permission_type_id": 2,
+                            "item_type_name": "accounts",
+                            "contact_id": \${contact},
+                            "account_number": \${tenant},
+                            "permission_name": "edit_ticket",
+                            "item_id": 862323,
+                            "id": 0
+                        },
+                        {
+                            "item_type_id": 2,
+                            "permission_type_id": 6,
+                            "item_type_name": "accounts",
+                            "contact_id": \${contact},
+                            "account_number": \${tenant},
+                            "permission_name": "view_domain",
+                            "item_id": 862323,
+                            "id": 0
+                        },
+                        {
+                            "item_type_id": 2,
+                            "item_type_name": "accounts",
+                            "contact_id": \${contact},
+                            "account_number": \${tenant},
+                            "permission_type_id": 17,
+                            "permission_name": "view_reports",
+                            "item_id": 862323,
+                            "id": 0
+                        },
+                        {
+                            "item_type_id": 2,
+                            "item_type_name": "accounts",
+                            "contact_id": \${contact},
+                            "account_number": \${tenant},
+                            "permission_type_id": 10,
+                            "permission_name": "manage_users",
+                            "item_id": 862323,
+                            "id": 0
+                        },
+                        {
+                            "item_type_id": 2,
+                            "item_type_name": "accounts",
+                            "contact_id": \${contact},
+                            "account_number": \${tenant},
+                            "permission_type_id": 7,
+                            "permission_name": "edit_domain",
+                            "item_id": 862323,
+                            "id": 0
+                        },
+                        {
+                            "item_type_id": 2,
+                            "item_type_name": "accounts",
+                            "contact_id": \${contact},
+                            "account_number": \${tenant},
+                            "permission_type_id": 15,
+                            "permission_name": "\${account_perm}",
+                            "item_id": 862323,
+                            "id": 0
                         }
                     ]
                 }"""
-
-
 }

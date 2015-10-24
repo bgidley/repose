@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.openrepose</groupId>
         <artifactId>filters-support</artifactId>
-        <version>7.1.3.2-SNAPSHOT</version>
+        <version>7.2.0.1-SNAPSHOT</version>
     </parent>
 
     <name>Repose Components - Rackspace Identity Basic Auth</name>
@@ -41,12 +41,6 @@
         <dependency>
             <groupId>com.typesafe.scala-logging</groupId>
             <artifactId>scala-logging-slf4j_2.10</artifactId>
-        </dependency>
-
-        <!-- Mockrunner for mock HttpServletRequest -->
-        <dependency>
-            <groupId>com.mockrunner</groupId>
-            <artifactId>mockrunner-servlet</artifactId>
         </dependency>
 
         <!-- These three are required because of our coupling between filters and core -->
@@ -108,12 +102,6 @@
 
     <build>
         <plugins>
-            <!-- The plugin that gets Scala running -->
-            <plugin>
-                <groupId>net.alchim31.maven</groupId>
-                <artifactId>scala-maven-plugin</artifactId>
-            </plugin>
-
             <!-- The plugin that cleans up our XSD to conform to XML 1.0 -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>

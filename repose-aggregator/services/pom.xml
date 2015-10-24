@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.openrepose</groupId>
         <artifactId>profile-support</artifactId>
-        <version>7.1.3.2-SNAPSHOT</version>
+        <version>7.2.0.1-SNAPSHOT</version>
     </parent>
 
     <name>Repose Services</name>
@@ -21,6 +21,7 @@
         <module>httpclient</module>
         <module>rate-limiting-service</module>
         <module>health-check</module>
+        <module>phone-home</module>
     </modules>
 
 </project>

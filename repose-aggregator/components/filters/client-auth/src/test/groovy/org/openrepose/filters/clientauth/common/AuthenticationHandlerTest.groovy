@@ -71,17 +71,17 @@ class AuthenticationHandlerTest extends Specification {
         }
 
         @Override
-        protected AuthToken validateToken(ExtractorResult<String> account, String token, String requestGuid) {
+        protected AuthToken validateToken(ExtractorResult<String> account, String token, String tracingHeader) {
             return null
         }
 
         @Override
-        protected AuthGroups getGroups(String group, String requestGuid) {
+        protected AuthGroups getGroups(String group, String tracingHeader) {
             return null
         }
 
         @Override
-        protected String getEndpointsBase64(String token, EndpointsConfiguration endpointsConfiguration, String requestGuid) {
+        protected String getEndpointsBase64(String token, EndpointsConfiguration endpointsConfiguration, String tracingHeader) {
             return null
         }
 
@@ -95,7 +95,7 @@ class AuthenticationHandlerTest extends Specification {
                                                double delegableQuality, String delegationMessage,
                                                FilterDirector filterDirector, String extractedResult,
                                                List<AuthGroup> groups, String endpointsBase64, String contactId,
-                                               boolean tenanted, boolean sendAllTenantIds, boolean sendTenantIdQuality) {
+                                               boolean sendAllTenantIds, boolean sendTenantIdQuality) {
         }
 
         protected String checkEndpointsCache(String token) {

@@ -50,9 +50,11 @@ public class OpenStackToken extends AuthToken implements Serializable {
     private final String username;
     private final String impersonatorTenantId;
     private final String impersonatorUsername;
+    private final Set<String> impersonatorRoles;
     private final String defaultRegion;
     private final Set<String> tenantIds;
     private final String contactId;
+    private String matchingTenantId;
 
     public OpenStackToken(AuthenticateResponse response) {
 
@@ -74,9 +76,13 @@ public class OpenStackToken extends AuthToken implements Serializable {
         UserForAuthenticateResponse impersonator = getImpersonator(response);
 
         this.defaultRegion = getDefaultRegion(response);
+        this.impersonatorRoles = new HashSet<>();
         if (impersonator != null) {
             this.impersonatorTenantId = impersonator.getId();
             this.impersonatorUsername = impersonator.getName();
+            for (Role role : impersonator.getRoles().getRole()) {
+                impersonatorRoles.add(role.getName());
+            }
         } else {
             this.impersonatorTenantId = "";
             this.impersonatorUsername = "";
@@ -113,6 +119,11 @@ public class OpenStackToken extends AuthToken implements Serializable {
         }
     }
 
+    @Override
+    public void setMatchingTenantId(String tenantId) {
+        this.matchingTenantId = tenantId;
+    }
+
     private String getDefaultRegion(AuthenticateResponse response) {
         return StringUtilities.getNonBlankValue(response.getUser().getOtherAttributes().get(REGION_QNAME), "");
     }
@@ -120,6 +131,11 @@ public class OpenStackToken extends AuthToken implements Serializable {
     @Override
     public String getTenantId() {
         return tenantId;
+    }
+
+    @Override
+    public String getMatchingTenantId() {
+        return matchingTenantId;
     }
 
     @Override
@@ -160,6 +176,11 @@ public class OpenStackToken extends AuthToken implements Serializable {
     @Override
     public String getImpersonatorUsername() {
         return impersonatorUsername;
+    }
+
+    @Override
+    public Set<String> getImpersonatorRoles() {
+        return impersonatorRoles;
     }
 
     @Override

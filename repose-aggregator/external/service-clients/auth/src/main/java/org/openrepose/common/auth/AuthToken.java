@@ -30,6 +30,10 @@ public abstract class AuthToken implements Serializable {
 
     public abstract String getTenantId();
 
+    public abstract void setMatchingTenantId(String tenantId);
+
+    public abstract String getMatchingTenantId();
+
     public abstract String getUserId();
 
     public abstract String getTokenId();
@@ -43,6 +47,8 @@ public abstract class AuthToken implements Serializable {
     public abstract String getImpersonatorTenantId();
 
     public abstract String getImpersonatorUsername();
+
+    public abstract Set<String> getImpersonatorRoles();
 
     public abstract String getTenantName();
 

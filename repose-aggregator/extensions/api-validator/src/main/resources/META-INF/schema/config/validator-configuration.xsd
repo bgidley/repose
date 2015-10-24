@@ -202,8 +202,20 @@
             <xs:annotation>
                 <xs:documentation>
                     <html:p>
-                        If set to true and the wadl references an XSD grammer, checks that the
-                        incoming request body is validated against the XSD grammer.
+                        If set to true and the wadl references an XSD grammar, checks that the
+                        incoming request body is validated against the XSD grammar.
+                        Deprecated: This attribute is deprecated. Use check-grammars attribute instead.
+                    </html:p>
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+
+        <xs:attribute name="check-grammars" type="xs:boolean" use="optional" default="false">
+            <xs:annotation>
+                <xs:documentation>
+                    <html:p>
+                        If set to true and the wadl references an XSD or JSON grammar(s), then the
+                        incoming request body will be validated against the grammar(s).
                     </html:p>
                 </xs:documentation>
             </xs:annotation>
@@ -444,6 +456,15 @@
                     <html:p>
                         The quality, a double between 0 and 1, assigned to the delegation header on delegation. This
                         value will be used to order delegation based on priority when multiple delegations are present.
+                    </html:p>
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="component-name" type="xs:string" use="optional" default="api-validator">
+            <xs:annotation>
+                <xs:documentation>
+                    <html:p>
+                        Sets the delegation component name for this validator.
                     </html:p>
                 </xs:documentation>
             </xs:annotation>
