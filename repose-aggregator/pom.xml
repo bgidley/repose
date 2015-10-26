@@ -925,27 +925,27 @@
                             <failFast>true</failFast>
                         </configuration>
                     </execution>
-                    <execution>
-                        <id>enforce-transitive-dependency-explicitness</id>
-                        <phase>process-test-classes</phase>
-                        <goals>
-                            <goal>enforce</goal>
-                        </goals>
-                        <configuration>
-                            <rules>
-                                <illegalTransitiveDependencyCheck implementation="de.is24.maven.enforcer.rules.IllegalTransitiveDependencyCheck">
-                                    <reportOnly>false</reportOnly>
-                                    <useClassesFromLastBuild>true</useClassesFromLastBuild>
-                                    <suppressTypesFromJavaRuntime>true</suppressTypesFromJavaRuntime>
-                                    <regexIgnoredClasses>
-                                        <regexIgnoredClass>org\.apache\.http\..+</regexIgnoredClass>
-                                        <regexIgnoredClass>com\.typesafe\.scalalogging\..+</regexIgnoredClass>
-                                        <regexIgnoredClass>play\.api\.libs\.functional\..+</regexIgnoredClass>
-                                    </regexIgnoredClasses>
-                                </illegalTransitiveDependencyCheck>
-                            </rules>
-                        </configuration>
-                    </execution>
+                    <!--<execution>-->
+                        <!--<id>enforce-transitive-dependency-explicitness</id>-->
+                        <!--<phase>process-test-classes</phase>-->
+                        <!--<goals>-->
+                            <!--<goal>enforce</goal>-->
+                        <!--</goals>-->
+                        <!--<configuration>-->
+                            <!--<rules>-->
+                                <!--<illegalTransitiveDependencyCheck implementation="de.is24.maven.enforcer.rules.IllegalTransitiveDependencyCheck">-->
+                                    <!--<reportOnly>false</reportOnly>-->
+                                    <!--<useClassesFromLastBuild>true</useClassesFromLastBuild>-->
+                                    <!--<suppressTypesFromJavaRuntime>true</suppressTypesFromJavaRuntime>-->
+                                    <!--<regexIgnoredClasses>-->
+                                        <!--<regexIgnoredClass>org\.apache\.http\..+</regexIgnoredClass>-->
+                                        <!--<regexIgnoredClass>com\.typesafe\.scalalogging\..+</regexIgnoredClass>-->
+                                        <!--<regexIgnoredClass>play\.api\.libs\.functional\..+</regexIgnoredClass>-->
+                                    <!--</regexIgnoredClasses>-->
+                                <!--</illegalTransitiveDependencyCheck>-->
+                            <!--</rules>-->
+                        <!--</configuration>-->
+                    <!--</execution>-->
                 </executions>
             </plugin>
             <!--
