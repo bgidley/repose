@@ -17,7 +17,7 @@
     </description>
 
     <properties>
-        <org.springframework.version>4.1.4.RELEASE</org.springframework.version>
+        <org.springframework.version>5.2.23.RELEASE</org.springframework.version>
         <groovy.version>2.1.3</groovy.version>
         <spock.version>0.7-groovy-2.0</spock.version>
         <gmaven.version>1.5</gmaven.version>
@@ -840,7 +840,7 @@
                 <version>${gmaven.version}</version>
                 <configuration>
                     <providerSelection>1.8</providerSelection>
-                    <source />
+                    <source/>
                 </configuration>
                 <dependencies>
                     <dependency>
@@ -1067,18 +1067,18 @@
                         </goals>
                         <configuration>
                             <target>
-                                <taskdef name="codenarc" classname="org.codenarc.ant.CodeNarcTask" classpathref="maven.plugin.classpath" />
+                                <taskdef name="codenarc" classname="org.codenarc.ant.CodeNarcTask" classpathref="maven.plugin.classpath"/>
                                 <codenarc ruleSetFiles="classpath:repose-style-configs/ruleset.xml" maxPriority1Violations="0" maxPriority2Violations="0" maxPriority3Violations="0">
                                     <report type="xml">
-                                        <option name="outputFile" value="${basedir}/target/CodeNarc.xml" />
-                                        <option name="title" value="${project.name}" />
+                                        <option name="outputFile" value="${basedir}/target/CodeNarc.xml"/>
+                                        <option name="title" value="${project.name}"/>
                                     </report>
                                     <report type="html">
-                                        <option name="outputFile" value="${basedir}/target/CodeNarc.html" />
-                                        <option name="title" value="${project.name}" />
+                                        <option name="outputFile" value="${basedir}/target/CodeNarc.html"/>
+                                        <option name="title" value="${project.name}"/>
                                     </report>
                                     <fileset dir="${basedir}/src/test/groovy" erroronmissingdir="false">
-                                        <include name="**/*.groovy" />
+                                        <include name="**/*.groovy"/>
                                     </fileset>
                                 </codenarc>
                             </target>
